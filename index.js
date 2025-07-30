@@ -17,7 +17,7 @@ const PORT = process.env.PORT || 5000;
 
 const allowedOrigin =
   process.env.NODE_ENV === "production"
-    ? "https://dynamicnews.vercel.app"
+    ? "https://martialverse.vercel.app/"
     : "http://localhost:5173";
 
 app.use(cors({ origin: allowedOrigin, credentials: true }));
@@ -34,7 +34,7 @@ app.get('/', (_, res) => res.send('Martial Verse Backend API is Live'));
 app.get('/health', (_, res) => res.status(200).send('Healthy'));
 
 // Self-ping to keep server alive
-const SELF_URL = process.env.SELF_URL || "https://martialversebackend.vercel.app";
+const SELF_URL = process.env.SELF_URL || "https://martialversebackend.onrender.com";
 setInterval(() => {
   axios.get(SELF_URL)
     .then(() => console.log("Self-ping successful!"))

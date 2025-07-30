@@ -1,17 +1,20 @@
+// routes/blogRoutes.js
 const express = require('express');
 const router = express.Router();
 const Upload = require('../models/UploadSchema');
 const { requireAuth } = require('@clerk/express');
 
-// Middleware to extract and validate user info
+// Updated middleware using req.auth() instead of req.auth
 function requireClerkAuth(req, res, next) {
-  const user = req.auth?.sessionClaims;
+  const { sessionClaims } = req.auth?.() || {};
 
-  if (!user) return res.status(401).json({ error: 'Unauthorized' });
+  if (!sessionClaims) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
 
   req.user = {
-    email: user.email,
-    id: user.sub,
+    email: sessionClaims.email,
+    id: sessionClaims.sub,
   };
 
   next();
@@ -61,7 +64,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // CREATE article (protected - only admins)
-router.post('/',  requireAuth(), requireClerkAuth, async (req, res) => {
+router.post('/', requireAuth(), requireClerkAuth, async (req, res) => {
   try {
     const { title, category, featured, authorName, authorLink, sections } = req.body;
     const { email } = req.user;
@@ -80,7 +83,7 @@ router.post('/',  requireAuth(), requireClerkAuth, async (req, res) => {
       featured,
       authorName,
       authorLink,
-      authorEmail: email, // store uploader email
+      authorEmail: email,
       sections,
     });
 
@@ -92,7 +95,7 @@ router.post('/',  requireAuth(), requireClerkAuth, async (req, res) => {
 });
 
 // UPDATE article (protected - only owner or primary admin)
-router.put('/:id',  requireAuth(), requireClerkAuth, async (req, res) => {
+router.put('/:id', requireAuth(), requireClerkAuth, async (req, res) => {
   try {
     const { title, category, featured, authorName, authorLink, sections } = req.body;
     const { email } = req.user;
@@ -119,7 +122,7 @@ router.put('/:id',  requireAuth(), requireClerkAuth, async (req, res) => {
 });
 
 // DELETE article (protected - only owner or primary admin)
-router.delete('/:id',  requireAuth(), requireClerkAuth, async (req, res) => {
+router.delete('/:id', requireAuth(), requireClerkAuth, async (req, res) => {
   try {
     const { email } = req.user;
     const existing = await Upload.findById(req.params.id);
