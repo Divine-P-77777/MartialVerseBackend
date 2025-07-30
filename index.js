@@ -17,7 +17,7 @@ const PORT = process.env.PORT || 5000;
 
 const allowedOrigin =
   process.env.NODE_ENV === "production"
-    ? "https://martialverse.vercel.app/"
+    ? "https://martialverse.vercel.app"
     : "http://localhost:5173";
 
 app.use(cors({ origin: allowedOrigin, credentials: true }));
