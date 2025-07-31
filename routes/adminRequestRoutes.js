@@ -1,77 +1,104 @@
+// File: /routes/adminRequestRoutes.js
+
 const express = require('express');
 const router = express.Router();
 const Admin = require('../models/AdminRequest');
+const { requireAuth } = require('@clerk/express');
 
+// Clerk Auth Middleware
+function requireClerkAuth(req, res, next) {
+  const { sessionClaims } = req.auth?.() || {};
 
-
-// GET all articles
-router.get('/', async (req, res) => {
-  try {
-    const uploads = await Admin.find().sort({ createdAt: -1 });
-    res.json(uploads);
-  } catch (err) {
-    res.status(500).json({ error: 'Failed to fetch articles.' });
+  if (!sessionClaims) {
+    return res.status(401).json({ error: 'Unauthorized' });
   }
-});
 
-// GET article by ID
-router.get('/:id', async (req, res) => {
-  try {
-    const upload = await Admin.findById(req.params.id);
-    if (!upload) return res.status(404).json({ error: 'Article not found.' });
-    res.json(upload);
-  } catch (err) {
-    res.status(500).json({ error: 'Failed to fetch article.' });
+  req.user = {
+    email: sessionClaims.email,
+    id: sessionClaims.sub,
+  };
+
+  next();
+}
+
+// Admin-only middleware
+function requireSuperAdmin(req, res, next) {
+  if (req.user.email !== process.env.SUPER_ADMIN_EMAIL) {
+    return res.status(403).json({ error: 'Access denied. Admin only.' });
   }
-});
-// CREATE article
+  next();
+}
+
+// ✅ PUBLIC: Submit access request
 router.post('/', async (req, res) => {
   try {
-    const { email, fullName,  country, state, profession,phone,socialLink } = req.body;
+    const { email, fullName, country, state, profession, phone, socialLink } = req.body;
 
-    if (!email || !) {
-      return res.status(400).json({ error: 'At least one section is required.' });
+    if (!email || !fullName || !country || !state || !profession || !socialLink) {
+      return res.status(400).json({ error: 'All required fields must be filled.' });
     }
 
-    const upload = new Upload({ title, category, subcategory, section, featured, sections });
-    await upload.save();
-    res.status(201).json(upload);
+    const existing = await Admin.findOne({ email });
+    if (existing) {
+      return res.status(409).json({ error: 'You have already submitted a request with this email.' });
+    }
+
+    const newRequest = new Admin({
+      email, fullName, country, state, profession, phone, socialLink
+    });
+
+    const saved = await newRequest.save();
+    res.status(201).json(saved);
   } catch (err) {
-    res.status(400).json({ error: 'Failed to create article.' });
+    console.error('Create Error:', err);
+    res.status(500).json({ error: 'Server error: could not create admin request.' });
   }
 });
 
-// UPDATE article
-router.put('/:id', async (req, res) => {
+// ✅ GET all requests — Admin only
+router.get('/', requireAuth(), requireClerkAuth, requireSuperAdmin, async (req, res) => {
   try {
-    const { title, category, subcategory, section, featured, sections } = req.body;
-
-    if (!sections || !Array.isArray(sections) || sections.length === 0) {
-      return res.status(400).json({ error: 'At least one section is required.' });
-    }
-
-    const upload = await Upload.findByIdAndUpdate(
-      req.params.id,
-      { title, category, subcategory, section, featured, sections },
-      { new: true }
-    );
-
-    if (!upload) return res.status(404).json({ error: 'Article not found.' });
-    res.json(upload);
+    const requests = await Admin.find().sort({ createdAt: -1 });
+    res.json(requests);
   } catch (err) {
-    res.status(400).json({ error: 'Failed to update article.' });
+    console.error('Fetch All Requests Error:', err);
+    res.status(500).json({ error: 'Server error: failed to fetch requests.' });
   }
 });
 
-
-// DELETE article
-router.delete('/:id', async (req, res) => {
+// ✅ GET one request — Admin only
+router.get('/:id', requireAuth(), requireClerkAuth, requireSuperAdmin, async (req, res) => {
   try {
-    const upload = await Upload.findByIdAndDelete(req.params.id);
-    if (!upload) return res.status(404).json({ error: 'Article not found.' });
-    res.json({ message: 'Article deleted.' });
+    const request = await Admin.findById(req.params.id);
+    if (!request) return res.status(404).json({ error: 'Request not found.' });
+    res.json(request);
   } catch (err) {
-    res.status(500).json({ error: 'Failed to delete article.' });
+    console.error('Fetch One Error:', err);
+    res.status(500).json({ error: 'Server error: failed to fetch request.' });
+  }
+});
+
+// ✅ UPDATE request — Admin only
+router.put('/:id', requireAuth(), requireClerkAuth, requireSuperAdmin, async (req, res) => {
+  try {
+    const updated = await Admin.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    if (!updated) return res.status(404).json({ error: 'Request not found for update.' });
+    res.json(updated);
+  } catch (err) {
+    console.error('Update Error:', err);
+    res.status(400).json({ error: 'Failed to update request.' });
+  }
+});
+
+// ✅ DELETE request — Admin only
+router.delete('/:id', requireAuth(), requireClerkAuth, requireSuperAdmin, async (req, res) => {
+  try {
+    const deleted = await Admin.findByIdAndDelete(req.params.id);
+    if (!deleted) return res.status(404).json({ error: 'Request not found for deletion.' });
+    res.json({ message: 'Request successfully deleted.' });
+  } catch (err) {
+    console.error('Delete Error:', err);
+    res.status(500).json({ error: 'Server error: failed to delete request.' });
   }
 });
 

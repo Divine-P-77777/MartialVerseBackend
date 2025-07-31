@@ -5,12 +5,13 @@ const axios = require('axios');
 
 dotenv.config();
 
-require('./config/db'); // Just require the file for DB connection
+require('./config/db'); 
 
-// const authRoutes = require('./routes/auth');
+
 const blogRoutes = require('./routes/blogRoutes');
+const adminRequestRoutes = require('./routes/adminRequestRoutes');
 
-const cloudinaryRoutes = require('./routes/Cloudinary');
+
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -23,11 +24,11 @@ const allowedOrigin =
 app.use(cors({ origin: allowedOrigin, credentials: true }));
 app.use(express.json());
 
-// Register routes
-// app.use('/auth', authRoutes);
-app.use('/admin/upload', blogRoutes);
 
-app.use('/api/cloudinary', cloudinaryRoutes);
+app.use('/admin/upload', blogRoutes);
+app.use('/api/access-request', adminRequestRoutes);
+
+
 
 // Health and root endpoints
 app.get('/', (_, res) => res.send('Martial Verse Backend API is Live'));
