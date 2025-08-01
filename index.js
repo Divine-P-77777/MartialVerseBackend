@@ -26,7 +26,7 @@ app.use(express.json());
 
 
 app.use('/admin/upload', blogRoutes);
-app.use('/api/access-request', adminRequestRoutes);
+app.use('/api/access', adminRequestRoutes);
 
 
 

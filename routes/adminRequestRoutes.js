@@ -1,40 +1,32 @@
-// File: /routes/adminRequestRoutes.js
-
 const express = require('express');
 const router = express.Router();
 const Admin = require('../models/AdminRequest');
-const { requireAuth } = require('@clerk/express');
 
-// Clerk Auth Middleware
-function requireClerkAuth(req, res, next) {
-  const { sessionClaims } = req.auth?.() || {};
+// Verify frontend secret middleware only
+function verifyFrontendSecret(req, res, next) {
+  const frontendSecret = req.headers['x-frontend-secret'];
+  const expectedSecret = process.env.FRONTEND_SECRET;
 
-  if (!sessionClaims) {
-    return res.status(401).json({ error: 'Unauthorized' });
+  if (!frontendSecret || frontendSecret !== expectedSecret) {
+    return res.status(403).json({ error: 'Forbidden: Invalid frontend secret.' });
   }
 
   req.user = {
-    email: sessionClaims.email,
-    id: sessionClaims.sub,
+    email: req.headers['x-user-email']?.toLowerCase().trim() || null,
   };
 
   next();
 }
 
-// Admin-only middleware
-function requireSuperAdmin(req, res, next) {
-  if (req.user.email !== process.env.SUPER_ADMIN_EMAIL) {
-    return res.status(403).json({ error: 'Access denied. Admin only.' });
-  }
-  next();
-}
-
-// ✅ PUBLIC: Submit access request
+//
+// ---------- PUBLIC ROUTE ----------
+// Submit a new admin access request
+//
 router.post('/', async (req, res) => {
   try {
     const { email, fullName, country, state, profession, phone, socialLink } = req.body;
 
-    if (!email || !fullName || !country || !state || !profession || !socialLink) {
+    if (!email || !fullName || !country || !state || !profession || !socialLink || !phone) {
       return res.status(400).json({ error: 'All required fields must be filled.' });
     }
 
@@ -43,10 +35,7 @@ router.post('/', async (req, res) => {
       return res.status(409).json({ error: 'You have already submitted a request with this email.' });
     }
 
-    const newRequest = new Admin({
-      email, fullName, country, state, profession, phone, socialLink
-    });
-
+    const newRequest = new Admin({ email, fullName, country, state, profession, phone, socialLink });
     const saved = await newRequest.save();
     res.status(201).json(saved);
   } catch (err) {
@@ -55,8 +44,10 @@ router.post('/', async (req, res) => {
   }
 });
 
-// ✅ GET all requests — Admin only
-router.get('/', requireAuth(), requireClerkAuth, requireSuperAdmin, async (req, res) => {
+//
+// ---------- ADMIN ROUTES (Protected by header secret only) ----------
+//
+router.get('/', verifyFrontendSecret, async (req, res) => {
   try {
     const requests = await Admin.find().sort({ createdAt: -1 });
     res.json(requests);
@@ -66,8 +57,7 @@ router.get('/', requireAuth(), requireClerkAuth, requireSuperAdmin, async (req, 
   }
 });
 
-// ✅ GET one request — Admin only
-router.get('/:id', requireAuth(), requireClerkAuth, requireSuperAdmin, async (req, res) => {
+router.get('/:id', verifyFrontendSecret, async (req, res) => {
   try {
     const request = await Admin.findById(req.params.id);
     if (!request) return res.status(404).json({ error: 'Request not found.' });
@@ -78,8 +68,7 @@ router.get('/:id', requireAuth(), requireClerkAuth, requireSuperAdmin, async (re
   }
 });
 
-// ✅ UPDATE request — Admin only
-router.put('/:id', requireAuth(), requireClerkAuth, requireSuperAdmin, async (req, res) => {
+router.put('/:id', verifyFrontendSecret, async (req, res) => {
   try {
     const updated = await Admin.findByIdAndUpdate(req.params.id, req.body, { new: true });
     if (!updated) return res.status(404).json({ error: 'Request not found for update.' });
@@ -90,8 +79,7 @@ router.put('/:id', requireAuth(), requireClerkAuth, requireSuperAdmin, async (re
   }
 });
 
-// ✅ DELETE request — Admin only
-router.delete('/:id', requireAuth(), requireClerkAuth, requireSuperAdmin, async (req, res) => {
+router.delete('/:id', verifyFrontendSecret, async (req, res) => {
   try {
     const deleted = await Admin.findByIdAndDelete(req.params.id);
     if (!deleted) return res.status(404).json({ error: 'Request not found for deletion.' });
