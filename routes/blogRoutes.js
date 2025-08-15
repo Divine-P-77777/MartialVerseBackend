@@ -19,18 +19,6 @@ router.get('/', async (req, res) => {
   }
 });
 
-// PUBLIC: Get blog by ID
-router.get('/:id', async (req, res) => {
-  try {
-    const blog = await Upload.findById(req.params.id);
-    if (!blog) return res.status(404).json({ error: 'Article not found' });
-    res.json(blog);
-  } catch (err) {
-    res.status(500).json({ error: 'Failed to fetch article' });
-  }
-});
-
-
 // ADMIN: Get all admin blogs
 router.get('/admin', verifyFrontendSecret, async (req, res) => {
   console.log('[DEBUG] Headers:', req.headers);
@@ -63,6 +51,20 @@ router.get('/admin', verifyFrontendSecret, async (req, res) => {
     res.status(500).json({ error: err.message || 'Failed to fetch admin blogs' });
   }
 });
+
+
+// PUBLIC: Get blog by ID
+router.get('/:id', async (req, res) => {
+  try {
+    const blog = await Upload.findById(req.params.id);
+    if (!blog) return res.status(404).json({ error: 'Article not found' });
+    res.json(blog);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch article' });
+  }
+});
+
+
 
 
 
