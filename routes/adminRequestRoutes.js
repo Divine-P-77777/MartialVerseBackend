@@ -1,22 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const Admin = require('../models/AdminRequest');
+const {verifyFrontendSecret} = require("../middleware/authmiddleware")
 
-
-function verifyFrontendSecret(req, res, next) {
-  const frontendSecret = req.headers['x-frontend-secret'];
-  const expectedSecret = process.env.FRONTEND_SECRET;
-
-  if (!frontendSecret || frontendSecret !== expectedSecret) {
-    return res.status(403).json({ error: 'Forbidden: Invalid frontend secret.' });
-  }
-
-  req.user = {
-    email: req.headers['x-user-email']?.toLowerCase().trim() || null,
-  };
-
-  next();
-}
 
 //  PUBLIC ROUTE 
 

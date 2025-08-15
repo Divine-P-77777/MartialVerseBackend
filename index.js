@@ -2,20 +2,21 @@ const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
 const axios = require('axios');
+const path = require('path');
 
 dotenv.config();
+require('./config/db');
 
-require('./config/db'); 
-
-
+// Routes
 const blogRoutes = require('./routes/blogRoutes');
 const adminRequestRoutes = require('./routes/adminRequestRoutes');
-
-
+const playlistRoutes = require('./routes/playlistRoutes');
+const BlogRenderRoutes = require('./routes/BlogRenderRoutes'); 
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// Allowed CORS origin
 const allowedOrigin =
   process.env.NODE_ENV === "production"
     ? process.env.CLIENT_ORIGIN
@@ -24,11 +25,24 @@ const allowedOrigin =
 app.use(cors({ origin: allowedOrigin, credentials: true }));
 app.use(express.json());
 
-
+// API routes
 app.use('/admin/upload', blogRoutes);
 app.use('/api/access', adminRequestRoutes);
+app.use("/api/playlist", playlistRoutes);
 
+// Serve React static files (for production)
+if (process.env.NODE_ENV === "production") {
+  const frontendPath = path.join(__dirname, '../frontend/dist');
+  app.use(express.static(frontendPath));
 
+  // Blog OG rendering route
+  app.use('/', BlogRenderRoutes);
+
+  // SPA Fallback (other React routes)
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(frontendPath, 'index.html'));
+  });
+}
 
 // Health and root endpoints
 app.get('/', (_, res) => res.send('Martial Verse Backend API is Live'));

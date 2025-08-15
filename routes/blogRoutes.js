@@ -1,26 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const Upload = require('../models/UploadSchema');
+const {verifyFrontendSecret} = require("../middleware/authmiddleware")
 
 // Primary admin email
 const PRIMARY_ADMIN_EMAIL = process.env.PRIMARY_ADMIN_EMAIL;
-
-// Header-based auth middleware
-function verifyFrontendSecret(req, res, next) {
-  const secret = req.headers['x-frontend-secret'];
-  const email = req.headers['x-user-email']?.toLowerCase().trim();
-
-  if (!secret || secret !== process.env.FRONTEND_SECRET) {
-    return res.status(403).json({ error: 'Forbidden: Invalid frontend secret' });
-  }
-
-  if (!email) {
-    return res.status(401).json({ error: 'Missing x-user-email header' });
-  }
-
-  req.user = { email };
-  next();
-}
 
 
 
