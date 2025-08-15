@@ -11,7 +11,7 @@ require('./config/db');
 const blogRoutes = require('./routes/blogRoutes');
 const adminRequestRoutes = require('./routes/adminRequestRoutes');
 const playlistRoutes = require('./routes/playlistRoutes');
-const BlogRenderRoutes = require('./routes/BlogRenderRoutes'); 
+const BlogRenderRoutes = require('./routes/BlogRenderRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -30,13 +30,13 @@ app.use('/admin/upload', blogRoutes);
 app.use('/api/access', adminRequestRoutes);
 app.use("/api/playlist", playlistRoutes);
 
+// Blog OG rendering route (outside production check so it works locally too)
+app.use('/', BlogRenderRoutes);
+
 // Serve React static files (for production)
 if (process.env.NODE_ENV === "production") {
   const frontendPath = path.join(__dirname, '../frontend/dist');
   app.use(express.static(frontendPath));
-
-  // Blog OG rendering route
-  app.use('/', BlogRenderRoutes);
 
   // SPA Fallback (other React routes)
   app.get('*', (req, res) => {
@@ -44,8 +44,10 @@ if (process.env.NODE_ENV === "production") {
   });
 }
 
+app.get('/',(req, res) => {
+  res.send('All is well')
+})
 // Health and root endpoints
-app.get('/', (_, res) => res.send('Martial Verse Backend API is Live'));
 app.get('/health', (_, res) => res.status(200).send('Healthy'));
 
 // Self-ping to keep server alive
