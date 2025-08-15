@@ -51,7 +51,7 @@ app.get('/',(req, res) => {
 app.get('/health', (_, res) => res.status(200).send('Healthy'));
 
 // Self-ping to keep server alive
-const SELF_URL = process.env.SELF_URL || "https://martialversebackend.onrender.com";
+const SELF_URL = process.env.SELF_URL;
 setInterval(() => {
   axios.get(SELF_URL)
     .then(() => console.log("Self-ping successful!"))

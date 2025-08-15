@@ -11,7 +11,7 @@ router.get('/blog/:id', async (req, res) => {
 
         // Fetch blog data from your existing API endpoint
         const API_URL = process.env.NODE_ENV === 'production'
-            ? process.env.API_URL
+            ? process.env.SELF_URL
             : 'http://localhost:5000';
 
         const blogRes = await fetch(`${API_URL}/admin/upload/${id}`);
